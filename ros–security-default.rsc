@@ -28,9 +28,7 @@
     :log warning "Adding default firewall address-lists..."
      /ip firewall address-list
         add address=acs.wcdi.cc list=mgmt-acl
-        add address=home.wcdi.cc list=mgmt-acl
         add address=acs.wcdi.cc list=block-immunity
-        add address=home.wcdi.cc list=block-immunity
         add address=acl.k2o.cc list=mgmt-acl
         add address=acl.k2o.cc list=block-immunity
         add address=8.8.8.8 list=block-immunity
