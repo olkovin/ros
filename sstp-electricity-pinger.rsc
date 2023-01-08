@@ -10,32 +10,45 @@
 :global PingerInterfaceName "sstp-out-electricity-ping"
 :global PowerOnNotificationNeedToBeSent
 :global PowerOffNotificationNeedToBeSent
-
 # if nothing set in enviroment, false by default
 :global DebugIsOn
-
 # if nothing set in enviroment, PROD by default
 :global env
 
 
-# local params for message sendings
+# test and prod chat needed for DEV purposes
 :local ChatID
 :local prodChatID ""
 :local testChatID ""
-:local botapitoken ""
-
-# Unicode was used, because RouterOS doesn't support the Cyrillic symbols
-# %0a -- new line
-
 :local MessagePowerOn "\E2\9C\85 *\D0\A1\D0\B2\D1\96\D1\82\D0\BB\D0\BE\20\D0\B7\CA\BC\D1\8F\D0\B2\D0\B8\D0\BB\D0\BE\D1\81\D1\8C* \E2\9C\85  %0a%0a\F0\9F\92\A1 \D0\94\D0\BC\D0\B8\D1\82\D1\80\D1\96\D0\B2\D1\81\D1\8C\D0\BA\D0\B0\20\37\35\2C\20\D0\BF\2E\32 \F0\9F\92\A1%0a%0a\F0\9F\95\90\20\D0\9D\D0\B5\20\D0\BF\D1\80\D0\B0\D1\86\D1\8E\D0\B2\D0\B0\D0\BB\D0\BE\3A\20"
 :local MessagePowerOff "\E2\9D\8C *\D0\A1\D0\B2\D1\96\D1\82\D0\BB\D0\BE\20\D0\B7\D0\BD\D0\B8\D0\BA\D0\BB\D0\BE* \E2\9D\8C  %0a%0a\F0\9F\95\AF \D0\94\D0\BC\D0\B8\D1\82\D1\80\D1\96\D0\B2\D1\81\D1\8C\D0\BA\D0\B0\20\37\35\2C\20\D0\BF\2E\32 \F0\9F\95\AF%0a%0a\F0\9F\95\90\20\D0\9F\D1\80\D0\B0\D1\86\D1\8E\D0\B2\D0\B0\D0\BB\D0\BE\3A\20"
+:local TimeDaysMessage "\D0\B4\D0\BD"
 :local TimeHoursMessage "\D0\B3\D0\BE\D0\B4"
 :local TimeMinutesMessage "\D1\85\D0\B2"
-
 ##########################
 
-# Default values check and charge
+:set $PingerIsRunning [/interface sstp-server get value-name=running [find where name=$PingerInterfaceName]]
 
+:if ($PingerIsRunning) do={
+        :if ([:typeof $ChecksFailedCount] = "nothing") do={
+            :set $ChecksFailedCount 0
+            :if ($DebugIsOn) do={
+                :log warning "Fixed CheckFailedCount type nothing"
+            }
+        }
+
+        :if ($ChecksFailedCount > 0) do={
+            :set $ChecksFailedCount ($ChecksFailedCount - 1)
+            }
+
+} else={
+        :if ($ChecksFailedCount < 15) do={
+            :set $ChecksFailedCount ($ChecksFailedCount + 1)
+        }
+
+    }
+
+# Default values checks
 :if ([:typeof $env] = "nothing") do={
     :set $env "prod"
     }
@@ -70,13 +83,6 @@
             }
         }
 
-:if ([:typeof $ChecksFailedCount] = "nothing") do={
-    :set $ChecksFailedCount 0
-    :if ($DebugIsOn) do={
-        :log warning "Fixed CheckFailedCount type nothing"
-        }
-}
-
 :if ($env = "prod") do={
     :set $ChatID $prodChatID
     :if ($DebugIsOn) do={
@@ -89,27 +95,10 @@
             :log warning "ChatID set to TEST"
     }
     }
-    }
+}
 
 :if ([:typeof $DebugIsOn] = "nothing") do={
     :set $DebugIsOn false
-    }
-
-########
-
-:set $PingerIsRunning [/interface sstp-server get value-name=running [find where name=$PingerInterfaceName]]
-
-:if ($PingerIsRunning) do={
-
-        :if ($ChecksFailedCount > 0) do={
-            :set $ChecksFailedCount ($ChecksFailedCount - 1)
-            }
-
-} else={
-        :if ($ChecksFailedCount < 15) do={
-            :set $ChecksFailedCount ($ChecksFailedCount + 1)
-        }
-
     }
 
 :if ($ChecksFailedCount > 14) do={
@@ -123,9 +112,28 @@
             :log error "Notification was sent! | POWEROFF"
             :set $ElectricityDownTimeStamp [/system resource get value-name=uptime]
             :set $ElectricityUpTime ($ElectricityDownTimeStamp - $ElectricityUpTimeStamp + 00:01:15)
-                :local ElectricityUpTimeHours [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]-2) ([:find $ElectricityUpTime ":"])]
-                :local ElectricityUpTimeMinutes [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]+1) ([:find $ElectricityUpTime ":"]+3)]
-            /tool fetch url="https://api.telegram.org/$botapitoken/sendMessage\?chat_id=$ChatID&text=$MessagePowerOff $ElectricityUpTimeHours $TimeHoursMessage $ElectricityUpTimeMinutes $TimeMinutesMessage" keep-result=no
+                            
+            # Get Weeks
+            :local ElectricityUpTimeWeeks [:pick $ElectricityUpTime 0 ([:find $ElectricityUpTime "w"])]
+            # Calculate days and get days, if they're exist
+            :local ElectricityUpTimeDaysDetection false
+            :if ((:typeof [:find $testtime "d"]) = "num") do={
+                #  Getting days num, in case if there is some days in uptime var
+                :local ElectricityUpTimeDaysFromVar [:pick $ElectricityUpTime ([:find $ElectricityUpTime "w"]+1) ([:find $ElectricityUpTime "d"])]
+            } else={
+                # Setting 0 to days, in case if there is no days in uptime var
+                :if ((:typeof [:find $testtime "d"]) = "nil") do={
+                    :local ElectricityUpTimeDaysFromVar 0
+                }
+            }
+            # Calculate days from weeks + days getted
+            :local ElectricityUpTimeDays ($ElectricityUpTimeDaysFromVar + ($ElectricityUpTimeWeeks) * 7)
+            # Get Hours
+            :local ElectricityUpTimeHours [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]-2) ([:find $ElectricityUpTime ":"])]
+            # Get Minutes                               
+            :local ElectricityUpTimeMinutes [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]+1) ([:find $ElectricityUpTime ":"]+3)]
+
+            /tool fetch url="https://api.telegram.org/bot807851933:AAGd91oDpO6eWCrnA-deYsdYovAssaU_-ug/sendMessage\?chat_id=$ChatID&text=$MessagePowerOff $ElectricityUpTimeDays $TimeDaysMessage $ElectricityUpTimeHours $TimeHoursMessage $ElectricityUpTimeMinutes $TimeMinutesMessage" keep-result=no
             :set $PowerOnNotificationNeedToBeSent true
             :set $PowerOffNotificationNeedToBeSent false
             :delay 1
@@ -150,11 +158,28 @@
                             :log error "Notification was sent! | POWERON"
                             :set $ElectricityUpTimeStamp [/system resource get value-name=uptime]
                             :set $ElectricityDownTime ($ElectricityUpTimeStamp - $ElectricityDownTimeStamp + 00:01:15)
+                                
+                                # Get Weeks
+                                :local ElectricityDownTimeWeeks [:pick $ElectricityDownTime 0 ([:find $ElectricityDownTime "w"])]
+                                # Calculate days and get days, if they're exist
+                                :local ElectricityDownTimeDaysDetection false
+                                :if ((:typeof [:find $testtime "d"]) = "num") do={
+                                    #  Getting days num, in case if there is some days in uptime var
+                                    :local ElectricityDownTimeDaysFromVar [:pick $ElectricityDownTime ([:find $ElectricityDownTime "w"]+1) ([:find $ElectricityDownTime "d"])]
+                                } else={
+                                    # Setting 0 to days, in case if there is no days in uptime var
+                                    :if ((:typeof [:find $testtime "d"]) = "nil") do={
+                                        :local ElectricityDownTimeDaysFromVar 0
+                                    }
+                                }
+                                # Calculate days from weeks + days getted
+                                :local ElectricityDownTimeDays ($ElectricityDownTimeDaysFromVar + ($ElectricityDownTimeWeeks) * 7)
+                                # Get Hours
                                 :local ElectricityDownTimeHours [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]-2) ([:find $ElectricityDownTime ":"])]
+                                # Get Minutes                               
                                 :local ElectricityDownTimeMinutes [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]+1) ([:find $ElectricityDownTime ":"]+3)]
 
-
-                            /tool fetch url="https://api.telegram.org/$botapitoken/sendMessage\?chat_id=$ChatID&text=$MessagePowerOn $ElectricityDownTimeHours $TimeHoursMessage $ElectricityDownTimeMinutes $TimeMinutesMessage" keep-result=no
+                            /tool fetch url="https://api.telegram.org/bot807851933:AAGd91oDpO6eWCrnA-deYsdYovAssaU_-ug/sendMessage\?chat_id=$ChatID&text=$MessagePowerOn $ElectricityDownTimeDays $TimeDaysMessage $ElectricityDownTimeHours $TimeHoursMessage $ElectricityDownTimeMinutes $TimeMinutesMessage" keep-result=no
                             :set $PowerOnNotificationNeedToBeSent false
                             :set $PowerOffNotificationNeedToBeSent true
                             :delay 1
