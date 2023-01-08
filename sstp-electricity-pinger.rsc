@@ -1,21 +1,21 @@
 # electricity down detector
 # based on sstp client and Mikrotik ROS
 
-:global epsstpDM75ChecksFailedCount
-:global epsstpDM75PingerIsRunning
-:global epsstpDM75ElectricityUpTime
-:global epsstpDM75ElectricityUpTimeStamp
-:global epsstpDM75ElectricityDownTime
-:global epsstpDM75ElectricityDownTimeStamp
-:global epsstpDM75PingerInterfaceName "sstp-out-electricity-ping"
-:global epsstpDM75PowerOnNotificationNeedToBeSent
-:global epsstpDM75PowerOffNotificationNeedToBeSent
+:global ChecksFailedCount
+:global PingerIsRunning
+:global ElectricityUpTime
+:global ElectricityUpTimeStamp
+:global ElectricityDownTime
+:global ElectricityDownTimeStamp
+:global PingerInterfaceName "sstp-out-electricity-ping"
+:global PowerOnNotificationNeedToBeSent
+:global PowerOffNotificationNeedToBeSent
 
 # if nothing set in enviroment, false by default
-:global epsstpDM75DebugIsOn
+:global DebugIsOn
 
 # if nothing set in enviroment, PROD by default
-:global epsstpDM75env
+:global env
 
 
 # local params for message sendings
@@ -36,133 +36,133 @@
 
 # Default values check and charge
 
-:if ([:typeof $epsstpDM75env] = "nothing") do={
-    :set $epsstpDM75env "prod"
+:if ([:typeof $env] = "nothing") do={
+    :set $env "prod"
     }
 
-:if ([:typeof $epsstpDM75PowerOnNotificationNeedToBeSent] = "nothing") do={
-            :set $epsstpDM75PowerOnNotificationNeedToBeSent true
-            :if ($epsstpDM75DebugIsOn) do={
-                :log warning "Fixed epsstpDM75PowerOnNotificationNeedToBeSent type nothing"
+:if ([:typeof $PowerOnNotificationNeedToBeSent] = "nothing") do={
+            :set $PowerOnNotificationNeedToBeSent true
+            :if ($DebugIsOn) do={
+                :log warning "Fixed PowerOnNotificationNeedToBeSent type nothing"
             }
         }
 
-:if ([:typeof $epsstpDM75ElectricityUpTime] = "nothing") do={
-    :set $epsstpDM75ElectricityUpTime 00:00:00
+:if ([:typeof $ElectricityUpTime] = "nothing") do={
+    :set $ElectricityUpTime 00:00:00
     }
 
-:if ([:typeof $epsstpDM75ElectricityDownTime] = "nothing") do={
-    :set $epsstpDM75ElectricityDownTime 00:00:00
+:if ([:typeof $ElectricityDownTime] = "nothing") do={
+    :set $ElectricityDownTime 00:00:00
     }
 
-:if ([:typeof $epsstpDM75ElectricityUpTimeStamp] = "nothing") do={
-    :set $epsstpDM75ElectricityUpTimeStamp 00:00:00
+:if ([:typeof $ElectricityUpTimeStamp] = "nothing") do={
+    :set $ElectricityUpTimeStamp 00:00:00
     }
 
-:if ([:typeof $epsstpDM75ElectricityDownTimeStamp] = "nothing") do={
-    :set $epsstpDM75ElectricityDownTimeStamp 00:00:00
+:if ([:typeof $ElectricityDownTimeStamp] = "nothing") do={
+    :set $ElectricityDownTimeStamp 00:00:00
     }
 
-:if ([:typeof $epsstpDM75PowerOffNotificationNeedToBeSent] = "nothing") do={
-            :set $epsstpDM75PowerOffNotificationNeedToBeSent true
-            :if ($epsstpDM75DebugIsOn) do={
-                :log warning "Fixed epsstpDM75PowerOffNotificationNeedToBeSent type nothing"
+:if ([:typeof $PowerOffNotificationNeedToBeSent] = "nothing") do={
+            :set $PowerOffNotificationNeedToBeSent true
+            :if ($DebugIsOn) do={
+                :log warning "Fixed PowerOffNotificationNeedToBeSent type nothing"
             }
         }
 
-:if ([:typeof $epsstpDM75ChecksFailedCount] = "nothing") do={
-    :set $epsstpDM75ChecksFailedCount 0
-    :if ($epsstpDM75DebugIsOn) do={
+:if ([:typeof $ChecksFailedCount] = "nothing") do={
+    :set $ChecksFailedCount 0
+    :if ($DebugIsOn) do={
         :log warning "Fixed CheckFailedCount type nothing"
         }
 }
 
-:if ($epsstpDM75env = "prod") do={
+:if ($env = "prod") do={
     :set $ChatID $prodChatID
-    :if ($epsstpDM75DebugIsOn) do={
+    :if ($DebugIsOn) do={
         :log warning "ChatID set to PROD"
     }
 } else={
-    :if ($epsstpDM75env = "test") do={
+    :if ($env = "test") do={
         :set $ChatID $testChatID
-        :if ($epsstpDM75DebugIsOn) do={
+        :if ($DebugIsOn) do={
             :log warning "ChatID set to TEST"
     }
     }
     }
 
-:if ([:typeof $epsstpDM75DebugIsOn] = "nothing") do={
-    :set $epsstpDM75DebugIsOn false
+:if ([:typeof $DebugIsOn] = "nothing") do={
+    :set $DebugIsOn false
     }
 
 ########
 
-:set $epsstpDM75PingerIsRunning [/interface sstp-server get value-name=running [find where name=$epsstpDM75PingerInterfaceName]]
+:set $PingerIsRunning [/interface sstp-server get value-name=running [find where name=$PingerInterfaceName]]
 
-:if ($epsstpDM75PingerIsRunning) do={
+:if ($PingerIsRunning) do={
 
-        :if ($epsstpDM75ChecksFailedCount > 0) do={
-            :set $epsstpDM75ChecksFailedCount ($epsstpDM75ChecksFailedCount - 1)
+        :if ($ChecksFailedCount > 0) do={
+            :set $ChecksFailedCount ($ChecksFailedCount - 1)
             }
 
 } else={
-        :if ($epsstpDM75ChecksFailedCount < 15) do={
-            :set $epsstpDM75ChecksFailedCount ($epsstpDM75ChecksFailedCount + 1)
+        :if ($ChecksFailedCount < 15) do={
+            :set $ChecksFailedCount ($ChecksFailedCount + 1)
         }
 
     }
 
-:if ($epsstpDM75ChecksFailedCount > 14) do={
-    :if ($epsstpDM75DebugIsOn) do={
+:if ($ChecksFailedCount > 14) do={
+    :if ($DebugIsOn) do={
     :log warning "Looks like the electricity is down"
     }
-        :if ($epsstpDM75DebugIsOn) do={
+        :if ($DebugIsOn) do={
             :log error "Here the notification about powerOFF supposed to be sent, but debug is on, so just showing this message"
         } else={
-            :if ($epsstpDM75PowerOffNotificationNeedToBeSent) do={
+            :if ($PowerOffNotificationNeedToBeSent) do={
             :log error "Notification was sent! | POWEROFF"
-            :set $epsstpDM75ElectricityDownTimeStamp [/system resource get value-name=uptime]
-            :set $epsstpDM75ElectricityUpTime ($epsstpDM75ElectricityDownTimeStamp - $epsstpDM75ElectricityUpTimeStamp + 00:01:15)
-                :local ElectricityUpTimeHours [:pick $epsstpDM75ElectricityUpTime ([:find $epsstpDM75ElectricityUpTime ":"]-2) ([:find $epsstpDM75ElectricityUpTime ":"])]
-                :local ElectricityUpTimeMinutes [:pick $epsstpDM75ElectricityUpTime ([:find $epsstpDM75ElectricityUpTime ":"]+1) ([:find $epsstpDM75ElectricityUpTime ":"]+3)]
+            :set $ElectricityDownTimeStamp [/system resource get value-name=uptime]
+            :set $ElectricityUpTime ($ElectricityDownTimeStamp - $ElectricityUpTimeStamp + 00:01:15)
+                :local ElectricityUpTimeHours [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]-2) ([:find $ElectricityUpTime ":"])]
+                :local ElectricityUpTimeMinutes [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]+1) ([:find $ElectricityUpTime ":"]+3)]
             /tool fetch url="https://api.telegram.org/$botapitoken/sendMessage\?chat_id=$ChatID&text=$MessagePowerOff $ElectricityUpTimeHours $TimeHoursMessage $ElectricityUpTimeMinutes $TimeMinutesMessage" keep-result=no
-            :set $epsstpDM75PowerOnNotificationNeedToBeSent true
-            :set $epsstpDM75PowerOffNotificationNeedToBeSent false
+            :set $PowerOnNotificationNeedToBeSent true
+            :set $PowerOffNotificationNeedToBeSent false
             :delay 1
-            :set $epsstpDM75ElectricityUpTime 00:00:00
-            :set $epsstpDM75ElectricityUpTimeStamp 00:00:00
+            :set $ElectricityUpTime 00:00:00
+            :set $ElectricityUpTimeStamp 00:00:00
             } else={
-                :if ($epsstpDM75DebugIsOn) do={
-                    :log warning "No powerOFF notification needs to be sent, because of epsstpDM75PowerOffNotificationNeedToBeSent is $epsstpDM75PowerOffNotificationNeedToBeSent"
+                :if ($DebugIsOn) do={
+                    :log warning "No powerOFF notification needs to be sent, because of PowerOffNotificationNeedToBeSent is $PowerOffNotificationNeedToBeSent"
                 }
             }
         }
 
  } else={
-    :if ($epsstpDM75ChecksFailedCount = 0) do={
-                :if ($epsstpDM75DebugIsOn) do={
+    :if ($ChecksFailedCount = 0) do={
+                :if ($DebugIsOn) do={
                 :log warning "Looks like the electricity is up again"
                 }
-                    :if ($epsstpDM75DebugIsOn) do={
+                    :if ($DebugIsOn) do={
                         :log error "Here the notification about powerON supposed to be sent, but debug is on, so just showing this message"
                     } else={
-                        :if ($epsstpDM75PowerOnNotificationNeedToBeSent) do={
+                        :if ($PowerOnNotificationNeedToBeSent) do={
                             :log error "Notification was sent! | POWERON"
-                            :set $epsstpDM75ElectricityUpTimeStamp [/system resource get value-name=uptime]
-                            :set $epsstpDM75ElectricityDownTime ($epsstpDM75ElectricityUpTimeStamp - $epsstpDM75ElectricityDownTimeStamp + 00:01:15)
-                                :local ElectricityDownTimeHours [:pick $epsstpDM75ElectricityDownTime ([:find $epsstpDM75ElectricityDownTime ":"]-2) ([:find $epsstpDM75ElectricityDownTime ":"])]
-                                :local ElectricityDownTimeMinutes [:pick $epsstpDM75ElectricityDownTime ([:find $epsstpDM75ElectricityDownTime ":"]+1) ([:find $epsstpDM75ElectricityDownTime ":"]+3)]
+                            :set $ElectricityUpTimeStamp [/system resource get value-name=uptime]
+                            :set $ElectricityDownTime ($ElectricityUpTimeStamp - $ElectricityDownTimeStamp + 00:01:15)
+                                :local ElectricityDownTimeHours [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]-2) ([:find $ElectricityDownTime ":"])]
+                                :local ElectricityDownTimeMinutes [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]+1) ([:find $ElectricityDownTime ":"]+3)]
 
 
                             /tool fetch url="https://api.telegram.org/$botapitoken/sendMessage\?chat_id=$ChatID&text=$MessagePowerOn $ElectricityDownTimeHours $TimeHoursMessage $ElectricityDownTimeMinutes $TimeMinutesMessage" keep-result=no
-                            :set $epsstpDM75PowerOnNotificationNeedToBeSent false
-                            :set $epsstpDM75PowerOffNotificationNeedToBeSent true
+                            :set $PowerOnNotificationNeedToBeSent false
+                            :set $PowerOffNotificationNeedToBeSent true
                             :delay 1
-                            :set $epsstpDM75ElectricityDownTime 00:00:00
-                            :set $epsstpDM75ElectricityDownTimeStamp 00:00:00
+                            :set $ElectricityDownTime 00:00:00
+                            :set $ElectricityDownTimeStamp 00:00:00
                         } else={
-                        :if ($epsstpDM75DebugIsOn) do={
-                            :log warning "No powerON notification needs to be sent, because of epsstpDM75PowerOnNotificationNeedToBeSent is $epsstpDM75PowerOnNotificationNeedToBeSent"
+                        :if ($DebugIsOn) do={
+                            :log warning "No powerON notification needs to be sent, because of PowerOnNotificationNeedToBeSent is $PowerOnNotificationNeedToBeSent"
                         }
                         }
                     }
