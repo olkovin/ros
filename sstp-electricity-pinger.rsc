@@ -20,11 +20,11 @@
 :local ChatID
 :local prodChatID ""
 :local testChatID ""
-:local MessagePowerOn "\E2\9C\85 *\D0\A1\D0\B2\D1\96\D1\82\D0\BB\D0\BE\20\D0\B7\CA\BC\D1\8F\D0\B2\D0\B8\D0\BB\D0\BE\D1\81\D1\8C* \E2\9C\85  %0a%0a\F0\9F\92\A1 \D0\94\D0\BC\D0\B8\D1\82\D1\80\D1\96\D0\B2\D1\81\D1\8C\D0\BA\D0\B0\20\37\35\2C\20\D0\BF\2E\32 \F0\9F\92\A1%0a%0a\F0\9F\95\90\20\D0\9D\D0\B5\20\D0\BF\D1\80\D0\B0\D1\86\D1\8E\D0\B2\D0\B0\D0\BB\D0\BE\3A\20"
-:local MessagePowerOff "\E2\9D\8C *\D0\A1\D0\B2\D1\96\D1\82\D0\BB\D0\BE\20\D0\B7\D0\BD\D0\B8\D0\BA\D0\BB\D0\BE* \E2\9D\8C  %0a%0a\F0\9F\95\AF \D0\94\D0\BC\D0\B8\D1\82\D1\80\D1\96\D0\B2\D1\81\D1\8C\D0\BA\D0\B0\20\37\35\2C\20\D0\BF\2E\32 \F0\9F\95\AF%0a%0a\F0\9F\95\90\20\D0\9F\D1\80\D0\B0\D1\86\D1\8E\D0\B2\D0\B0\D0\BB\D0\BE\3A\20"
-:local TimeDaysMessage "\D0\B4\D0\BD"
-:local TimeHoursMessage "\D0\B3\D0\BE\D0\B4"
-:local TimeMinutesMessage "\D1\85\D0\B2"
+:local MessagePowerOn "\E2\9C\85 *Electricity Pinger Available* \E2\9C\85  %0a%0a\F0\9F\92\A1 Office Facility \F0\9F\92\A1%0a%0aWas Down for:"
+:local MessagePowerOff "\E2\9D\8C *Electricity Pinger Unavailable* \E2\9D\8C  %0a%0a\F0\9F\95\AF Office Facility \F0\9F\95\AF%0a%0aWas Up for:"
+:local TimeDaysMessage "d."
+:local TimeHoursMessage "h."
+:local TimeMinutesMessage "min."
 ##########################
 
 :set $PingerIsRunning [/interface sstp-server get value-name=running [find where name=$PingerInterfaceName]]
