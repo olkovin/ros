@@ -5,8 +5,14 @@
 :global PingerIsRunning
 :global ElectricityUpTime
 :global ElectricityUpTimeStamp
+:global ElectricityUpTimeDays
+:global ElectricityUpTimeDaysFromVar
+:global ElectricityUpTimeWeeks
 :global ElectricityDownTime
 :global ElectricityDownTimeStamp
+:global ElectricityDownTimeDays
+:global ElectricityDownTimeDaysFromVar
+:global ElectricityDownTimeWeeks
 :global PingerInterfaceName "sstp-out-electricity-ping"
 :global PowerOnNotificationNeedToBeSent
 :global PowerOffNotificationNeedToBeSent
@@ -113,21 +119,25 @@
             :set $ElectricityDownTimeStamp [/system resource get value-name=uptime]
             :set $ElectricityUpTime ($ElectricityDownTimeStamp - $ElectricityUpTimeStamp + 00:01:15)
                             
-            # Get Weeks
-            :local ElectricityUpTimeWeeks [:pick $ElectricityUpTime 0 ([:find $ElectricityUpTime "w"])]
-            # Calculate days and get days, if they're exist
-            :local ElectricityUpTimeDaysDetection false
-            :if ((:typeof [:find $testtime "d"]) = "num") do={
+
+            # Get weeks better
+            :if ([:typeof [:find $ElectricityUpTime "w"]] = "num") do={
                 #  Getting days num, in case if there is some days in uptime var
-                :local ElectricityUpTimeDaysFromVar [:pick $ElectricityUpTime ([:find $ElectricityUpTime "w"]+1) ([:find $ElectricityUpTime "d"])]
+                :set $ElectricityUpTimeWeeks [:pick $ElectricityUpTime 0 ([:find $ElectricityUpTime "w"])]
             } else={
-                # Setting 0 to days, in case if there is no days in uptime var
-                :if ((:typeof [:find $testtime "d"]) = "nil") do={
-                    :local ElectricityUpTimeDaysFromVar 0
-                }
+                :set $ElectricityUpTimeWeeks 0
             }
+
+            # Calculate days and get days, if they're exist
+            :if ([:typeof [:find $ElectricityUpTime "d"]] = "num") do={
+                #  Getting days num, in case if there is some days in uptime var
+                :set $ElectricityUpTimeDaysFromVar [:pick $ElectricityUpTime ([:find $ElectricityUpTime "d"]-1) ([:find $ElectricityUpTime "d"])]
+            } else={
+                :set $ElectricityUpTimeDaysFromVar 0
+            }
+
             # Calculate days from weeks + days getted
-            :local ElectricityUpTimeDays ($ElectricityUpTimeDaysFromVar + ($ElectricityUpTimeWeeks) * 7)
+            :set $ElectricityUpTimeDays ($ElectricityUpTimeDaysFromVar + ($ElectricityUpTimeWeeks * 7))
             # Get Hours
             :local ElectricityUpTimeHours [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]-2) ([:find $ElectricityUpTime ":"])]
             # Get Minutes                               
@@ -159,26 +169,29 @@
                             :set $ElectricityUpTimeStamp [/system resource get value-name=uptime]
                             :set $ElectricityDownTime ($ElectricityUpTimeStamp - $ElectricityDownTimeStamp + 00:01:15)
                                 
-                                # Get Weeks
-                                :local ElectricityDownTimeWeeks [:pick $ElectricityDownTime 0 ([:find $ElectricityDownTime "w"])]
-                                # Calculate days and get days, if they're exist
-                                :local ElectricityDownTimeDaysDetection false
-                                :if ((:typeof [:find $testtime "d"]) = "num") do={
-                                    #  Getting days num, in case if there is some days in uptime var
-                                    :local ElectricityDownTimeDaysFromVar [:pick $ElectricityDownTime ([:find $ElectricityDownTime "w"]+1) ([:find $ElectricityDownTime "d"])]
-                                } else={
-                                    # Setting 0 to days, in case if there is no days in uptime var
-                                    :if ((:typeof [:find $testtime "d"]) = "nil") do={
-                                        :local ElectricityDownTimeDaysFromVar 0
-                                    }
-                                }
+            # Get weeks better
+            :if ([:typeof [:find $ElectricityDownTime "w"]] = "num") do={
+                #  Getting days num, in case if there is some days in uptime var
+                :set $ElectricityDownTimeWeeks [:pick $ElectricityDownTime 0 ([:find $ElectricityDownTime "w"])]
+            } else={
+                :set $ElectricityDownTimeWeeks 0
+            }
+
+            # Calculate days and get days, if they're exist
+            :if ([:typeof [:find $ElectricityDownTime "d"]] = "num") do={
+                #  Getting days num, in case if there is some days in uptime var
+                :set $ElectricityDownTimeDaysFromVar [:pick $ElectricityDownTime ([:find $ElectricityDownTime "d"]-1) ([:find $ElectricityDownTime "d"])]   
+            } else={
+                 :set $ElectricityDownTimeDaysFromVar 0
+            }
+
                                 # Calculate days from weeks + days getted
-                                :local ElectricityDownTimeDays ($ElectricityDownTimeDaysFromVar + ($ElectricityDownTimeWeeks) * 7)
+                                :set $ElectricityDownTimeDays ($ElectricityDownTimeDaysFromVar + ($ElectricityDownTimeWeeks * 7))
                                 # Get Hours
                                 :local ElectricityDownTimeHours [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]-2) ([:find $ElectricityDownTime ":"])]
                                 # Get Minutes                               
                                 :local ElectricityDownTimeMinutes [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]+1) ([:find $ElectricityDownTime ":"]+3)]
-
+                            
                             /tool fetch url="https://api.telegram.org/bot807851933:AAGd91oDpO6eWCrnA-deYsdYovAssaU_-ug/sendMessage\?chat_id=$ChatID&text=$MessagePowerOn $ElectricityDownTimeDays $TimeDaysMessage $ElectricityDownTimeHours $TimeHoursMessage $ElectricityDownTimeMinutes $TimeMinutesMessage" keep-result=no
                             :set $PowerOnNotificationNeedToBeSent false
                             :set $PowerOffNotificationNeedToBeSent true
