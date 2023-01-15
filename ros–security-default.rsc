@@ -63,11 +63,11 @@ add action=passthrough chain=- comment=\
 /ip firewall filter
 add action=passthrough chain=- comment=\
     "=============== INPUT SECTION ==============="
-add action=add-src-to-address-list address-list=port-scan-banned \
+add action=add-src-to-address-list address-list=banned \
     address-list-timeout=2w chain=input comment="TCP portscanners detection" \
     in-interface-list=WAN protocol=tcp psd=21,3s,3,1 src-address-list=\
     !block-immunity
-add action=add-src-to-address-list address-list=port-scan-banned \
+add action=add-src-to-address-list address-list=banned \
     address-list-timeout=2w chain=input comment="UDP portscanners detection" \
     in-interface-list=WAN protocol=udp psd=21,3s,3,1 src-address-list=\
     !block-immunity
@@ -129,7 +129,7 @@ add action=passthrough chain=- comment=\
 /ip firewall filter
 add action=passthrough chain=- comment=\
     "=============== BRUTEFORCE SCAN SECTION ==============="
-add action=add-src-to-address-list address-list=bruteforce-detection-banned \
+add action=add-src-to-address-list address-list=banned \
     address-list-timeout=2w chain=bruteforce-scan-chain comment=\
     "Bruteforce detection stage 5" connection-state=new in-interface-list=WAN \
     src-address-list=bruteforce-detection-stage4 disabled=yes
@@ -159,8 +159,7 @@ add action=passthrough chain=- comment=\
 :do {
     :log warning "Adding dropping bruteforces and portscanners on RAW...."
 /ip firewall raw
-add action=drop chain=prerouting comment="Drop all bruteforcers" in-interface-list=WAN src-address-list=bruteforce-detection-banned disabled=yes
-add action=drop chain=prerouting comment="Drop all portscanners" in-interface-list=WAN src-address-list=port_scanners disabled=yes
+add action=drop chain=prerouting comment="Drop all banned" in-interface-list=WAN src-address-list=banned disabled=yes
     :delay 1
     :log warning "Adding dropping bruteforces and portscanners on RAW finished!"
 } on-error={:log error "Error when adding dropping bruteforces and portscanners on RAW rules, probably one of them exists, or specified interface/interface list doesn't exist.."}
