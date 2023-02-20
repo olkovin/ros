@@ -1,0 +1,115 @@
+# ---------------------------------- TelegramWebhookBot ---------------------------------------------------------------
+:if ([:len [/system script job find script=TGwebhookBOT_Mainbody]] <= 1) do={
+#:while (true) do={
+  :global TelegramWebhookPackets
+  :local TWebhookURL "https://your.webhook.url/"
+  :local TWebhookPort "your webhook port"
+
+# Create Telegram webhook mangle action and adding firewall address-list
+  :if ([:put [ip firewall address-list print count-only where list="telegram_api"]] <= 0) do={
+	/system script run TGwebhookBOT_AddressesAdd
+	}
+  :if ([:len [/ip firewall mangle find dst-port=$TWebhookPort]] = 0) do={
+    /ip firewall mangle add action=accept chain=prerouting connection-state=new dst-port=$TWebhookPort protocol=tcp src-address-list="telegram_api" comment="Telegram"
+	}
+ 
+  :if ([/ip firewall mangle get [find dst-port=$TWebhookPort] packets] != $TelegramWebhookPackets) do={
+    /system script run TGwebhookBOT_JSONfunc
+	
+# Auth tokens, credentials and variables
+    :local TToken "your-bot-token"
+    :local TChatId "your-chat-id"
+    :global TelegramOffset
+    :global fJParse
+    :global fJParsePrintVar
+    :global Jdebug false
+    :global JSONIn
+    :global JParseOut
+ 
+    :if ([:typeof $TelegramOffset] != "num") do={:set TelegramOffset 0}
+    :put "getWebhookInfo" 
+    :do {/tool fetch url="https://api.telegram.org/bot$TToken/getWebhookInfo" dst-path=TGwebhookBOT_TemporaryFiles.txt} on-error={:put "getWebhookInfo error"}
+    :set JSONIn [/file get TGwebhookBOT_TemporaryFiles.txt contents]
+    :set JParseOut [$fJParse]
+    :put $JParseOut
+    :if ($JParseOut->"result"->"pending_update_count" > 0) do={
+      :put "pending_update_count > 0"
+      :do {/tool fetch url="https://api.telegram.org/bot$TToken/deleteWebhook"  http-method=get keep-result=no}  on-error={:put "deleteWebhook error"}
+      :put "getUpdates"
+      :do {/tool fetch url="https://api.telegram.org/bot$TToken/getUpdates\?chat_id=$TChatId&offset=$TelegramOffset" dst-path=TGwebhookBOT_TemporaryFiles.txt} on-error={:put "getUpdates error"}
+      :set JSONIn [/file get TGwebhookBOT_TemporaryFiles.txt contents]
+      :set JParseOut [$fJParse]
+      :put $JParseOut
+      :if ([:len ($JParseOut->"result")] > 0) do={
+        :foreach k,v in=($JParseOut->"result") do={
+          :if (any ($v->"message"->"text")) do={
+			# Show system uptime
+            :if ($v->"message"->"text" ~ "uptime") do={
+              :do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=$[/system resource get uptime]" keep-result=no} on-error={:put  "sendmessage error"}
+            } else={
+			# Show uplink ip
+			## Isnt working, need fix with "pick" and "type"
+              :if ($v->"message"->"text" ~ "ip") do={
+                :do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=$[/ip dhcp-client print as-value]" keep-result=no} on-error={:put "sendmessage error"}
+              } else={
+			   # Show debuging reply
+                :if ($v->"message"->"text" ~ "parse") do={
+                  :do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=$[$fJParsePrintVar]" keep-result=no} on-error={:put   "sendmessage error"}
+                } else={
+			  # Show debuging pong text on ping command
+                :if ($v->"message"->"text" ~ "ping") do={
+                  :do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=pong" keep-result=no} on-error={:put   "sendmessage error"}
+                } else={
+				# Allow reset command
+				:if ($v->"message"->"text" = "allow reset") do={
+					:do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=Reset is allowed in next 30 seconds" keep-result=no} on-error={:put   "sendmessage error"}
+					/system script run TGwebhookBOT_AllowReset30
+				} else={
+				# Allahu Akbar (reset) command
+				:if ($v->"message"->"text" = "reset") do={
+						:global ResetAllowTrigger
+						:if ($ResetAllowTrigger = "true") do={
+							:do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=\F0\9F\92\A5 \F0\9F\94\A5 \F0\9F\8C\9A ALLAHU AKBAR!!!11 \F0\9F\8C\9A \F0\9F\94\A5 \F0\9F\92\A5" keep-result=no} on-error={:put   "sendmessage error"}
+							/system script run TGwebhookBOT_AllahuAkbar
+						} else={
+							:do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=Reset is not allowed, try to allow it first." keep-result=no} on-error={:put   "sendmessage error"}
+						}
+				} else={
+				#
+				# Some other commands here
+				#
+				:if ($v->"message"->"text" ~ "SomeOtherCommandTrigger3") do={
+				#
+				#some commands here
+                #
+				} else={
+				# Show Undefined error, on any else text.
+                    :put ($v->"message"->"text")
+                    :do {/tool fetch url="https://api.telegram.org/bot$TToken/sendmessage\?chat_id=$TChatId"  http-method=post  http-data="text=Undefined Command, try again" keep-result=no} on-error={:put  "sendmessage error"}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+          }
+          :set $TelegramOffset ($v->"update_id" + 1)
+        }
+      } else={
+#        :set $TelegramOffset 0
+      }
+      :put "getUpdates"
+      :do {/tool fetch url="https://api.telegram.org/bot$TToken/getUpdates\?chat_id=$TChatId&offset=$TelegramOffset" keep-result=no} on-error={:put "getUpdates error"}
+      :put "setWebhook"
+      :do {/tool fetch url="https://api.telegram.org/bot$TToken/setWebhook\?url=$TWebhookURL:$TWebhookPort" keep-result=no} on-error={:put "setWebhook error"}
+    } else={
+      :if ($JParseOut->"result"->"url"="") do={
+        :put "setWebhook"
+        :do {/tool fetch url="https://api.telegram.org/bot$TToken/setWebhook\?url=$TWebhookURL:$TWebhookPort" keep-result=no} on-error={:put "setWebhook error"}
+      }
+    }
+  :set TelegramWebhookPackets [/ip firewall mangle get [find dst-port=$TWebhookPort] packets]
+  :put "--------------------------------------------------"
+  }
+}
