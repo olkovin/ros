@@ -143,7 +143,7 @@
             # Get Minutes                               
             :local ElectricityUpTimeMinutes [:pick $ElectricityUpTime ([:find $ElectricityUpTime ":"]+1) ([:find $ElectricityUpTime ":"]+3)]
 
-            /tool fetch url="https://api.telegram.org/bot807851933:AAGd91oDpO6eWCrnA-deYsdYovAssaU_-ug/sendMessage\?chat_id=$ChatID&text=$MessagePowerOff $ElectricityUpTimeDays $TimeDaysMessage $ElectricityUpTimeHours $TimeHoursMessage $ElectricityUpTimeMinutes $TimeMinutesMessage" keep-result=no
+            /tool fetch url="https://api.telegram.org/botINSERT_YOUR_BOT_TOKEN_HERE/sendMessage\?chat_id=$ChatID&text=$MessagePowerOff $ElectricityUpTimeDays $TimeDaysMessage $ElectricityUpTimeHours $TimeHoursMessage $ElectricityUpTimeMinutes $TimeMinutesMessage" keep-result=no
             :set $PowerOnNotificationNeedToBeSent true
             :set $PowerOffNotificationNeedToBeSent false
             :delay 1
@@ -192,7 +192,7 @@
                                 # Get Minutes                               
                                 :local ElectricityDownTimeMinutes [:pick $ElectricityDownTime ([:find $ElectricityDownTime ":"]+1) ([:find $ElectricityDownTime ":"]+3)]
                             
-                            /tool fetch url="https://api.telegram.org/bot807851933:AAGd91oDpO6eWCrnA-deYsdYovAssaU_-ug/sendMessage\?chat_id=$ChatID&text=$MessagePowerOn $ElectricityDownTimeDays $TimeDaysMessage $ElectricityDownTimeHours $TimeHoursMessage $ElectricityDownTimeMinutes $TimeMinutesMessage" keep-result=no
+                            /tool fetch url="https://api.telegram.org/botINSERT_YOUR_BOT_TOKEN_HERE/sendMessage\?chat_id=$ChatID&text=$MessagePowerOn $ElectricityDownTimeDays $TimeDaysMessage $ElectricityDownTimeHours $TimeHoursMessage $ElectricityDownTimeMinutes $TimeMinutesMessage" keep-result=no
                             :set $PowerOnNotificationNeedToBeSent false
                             :set $PowerOffNotificationNeedToBeSent true
                             :delay 1
